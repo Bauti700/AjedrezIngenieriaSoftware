@@ -7,6 +7,7 @@ import chess.core.model.Piece;
 import chess.core.model.Position;
 import chess.core.model.Square;
 import chess.core.movement.KingMovementStrategy;
+import java.util.List;
 
 /**
  * CheckDetector (UML): detecta si un rey esta en jaque.
@@ -72,5 +73,37 @@ public class CheckDetector {
                 destination.clear();
             }
         }
+    }
+
+    /**
+     * Verifica si el jugador de color tiene al menos un movimiento legal disponible
+     * (es decir, una jugada permitida por la pieza que no deje a su rey en jaque).
+     */
+    public boolean hasAnyLegalMove(Color color, Board board) {
+        for (int row = 0; row < board.getHeight(); row++) {
+            for (int column = 0; column < board.getWidth(); column++) {
+                Position from = new Position(row, column);
+                Piece piece = board.getSquare(from).getPiece();
+                if (piece != null && piece.getColor() == color) {
+                    List<Position> destinations = piece.getValidMoves(from, board);
+                    for (Position to : destinations) {
+                        Piece pieceOnDestination = board.getSquare(to).getPiece();
+                        Move move = new Move(from, to, piece, pieceOnDestination);
+                        if (!willMoveLeaveKingInCheck(move, board)) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * ¿El jugador de color esta en jaque mate?
+     * Condicion: estar en jaque y no tener ningun movimiento legal para escapar.
+     */
+    public boolean isCheckmate(Color color, Board board) {
+        return isInCheck(color, board) && !hasAnyLegalMove(color, board);
     }
 }

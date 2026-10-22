@@ -8,6 +8,8 @@ interface BoardProps {
   possibleMoves: Position[];
   isWhiteInCheck: boolean;
   isBlackInCheck: boolean;
+  isWhiteInCheckmate?: boolean;
+  isBlackInCheckmate?: boolean;
   onSquareClick: (pos: Position) => void;
 }
 
@@ -17,6 +19,8 @@ export const Board: React.FC<BoardProps> = ({
   possibleMoves,
   isWhiteInCheck,
   isBlackInCheck,
+  isWhiteInCheckmate,
+  isBlackInCheckmate,
   onSquareClick
 }) => {
   // Etiquetas calculadas según el tamaño del tablero (no fijas en 8x8)
@@ -41,7 +45,12 @@ export const Board: React.FC<BoardProps> = ({
               const isDark = (rIdx + cIdx) % 2 === 1;
               const selected = isSelected(rIdx, cIdx);
               const isPossible = isMoveDestination(rIdx, cIdx);
+              const isCheckmateKing =
+                piece?.type === 'king' &&
+                ((piece.color === 'white' && isWhiteInCheckmate) ||
+                  (piece.color === 'black' && isBlackInCheckmate));
               const isCheckKing =
+                !isCheckmateKing &&
                 piece?.type === 'king' &&
                 ((piece.color === 'white' && isWhiteInCheck) ||
                   (piece.color === 'black' && isBlackInCheck));
@@ -51,7 +60,7 @@ export const Board: React.FC<BoardProps> = ({
                   key={`${rIdx}-${cIdx}`}
                   className={`square ${isDark ? 'square-dark' : 'square-light'} ${
                     selected ? 'selected' : ''
-                  } ${isCheckKing ? 'in-check' : ''}`}
+                  } ${isCheckmateKing ? 'in-checkmate' : ''} ${isCheckKing ? 'in-check' : ''}`}
                   onClick={() => onSquareClick({ row: rIdx, column: cIdx })}
                   title={`${columnsLabels[cIdx]}${rowLabels[rIdx]}`}
                 >

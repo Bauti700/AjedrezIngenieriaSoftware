@@ -16,6 +16,12 @@ public interface ChessGameAPI {
 
     boolean isCheck(Color color);
 
+    boolean isCheckmate(Color color);
+
+    default boolean isGameOver() {
+        return isCheckmate(Color.WHITE) || isCheckmate(Color.BLACK);
+    }
+
     Color getCurrentTurn();
 
     List<Piece> getCapturedPieces();

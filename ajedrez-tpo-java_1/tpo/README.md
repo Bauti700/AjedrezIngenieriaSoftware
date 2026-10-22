@@ -30,7 +30,7 @@ en jaque: piezas clavadas, rey que camina hacia una casilla atacada, o estar en 
 | Funcionalidad | Estado |
 | :-- | :-- |
 | Interfaz gráfica más allá del mínimo | ✅ Hecho (React + `ChessHttpServer`) |
-| Jaque mate | ❌ Pendiente: se detecta el jaque, pero la partida no termina cuando no quedan movimientos legales |
+| Jaque mate | ✅ Hecho (`CheckDetector.isCheckmate`, fin de partida en `ChessGame` y aviso en UIs) |
 | Enroque | ❌ Pendiente |
 | Captura al paso | ❌ Pendiente |
 | Promoción de peón | ❌ Pendiente: un peón que llega a la última fila queda ahí sin poder moverse |
@@ -43,7 +43,7 @@ en jaque: piezas clavadas, rey que camina hacia una casilla atacada, o estar en 
 | Entregable | Estado |
 | :-- | :-- |
 | Código fuente completo | ✅ Hecho |
-| Tests unitarios del núcleo | ✅ Hecho: 68 tests JUnit 5, sin infraestructura |
+| Tests unitarios del núcleo | ✅ Hecho: 75 tests JUnit 5, sin infraestructura |
 | Diagrama de clases (UML) | ⚠️ Existe la Versión 0 aprobada; hay que decidir si se hace una Versión 1 con las diferencias listadas más abajo |
 | Documento de justificación (qué / por qué / cuándo romperlo) | ❌ Pendiente (este README tiene notas que sirven de base) |
 | Presentación (PPTX) | ❌ Pendiente |

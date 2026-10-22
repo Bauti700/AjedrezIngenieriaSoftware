@@ -23,6 +23,8 @@ export interface GameState {
   currentTurn: Color;
   capturedPieces: Piece[];
   check: { white: boolean; black: boolean };
+  checkmate?: { white: boolean; black: boolean };
+  gameOver?: boolean;
 }
 
 export interface MoveResult {

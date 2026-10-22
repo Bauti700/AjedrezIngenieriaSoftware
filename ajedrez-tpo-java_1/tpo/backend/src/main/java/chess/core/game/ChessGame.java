@@ -37,6 +37,11 @@ public class ChessGame implements ChessGameAPI {
         Piece movedPiece = board.getSquare(from).getPiece();
         if (movedPiece == null) return false;
 
+        // Si la partida ya finalizo por jaque mate, no se permiten mas jugadas
+        if (isGameOver()) {
+            return false;
+        }
+
         Move move = new Move(from, to, movedPiece, board.getSquare(to).getPiece());
         if (!moveValidator.isValidMove(move, board, turnManager.getCurrentTurn())) {
             return false;
@@ -53,6 +58,11 @@ public class ChessGame implements ChessGameAPI {
     @Override
     public boolean isCheck(Color color) {
         return moveValidator.getCheckDetector().isInCheck(color, board);
+    }
+
+    @Override
+    public boolean isCheckmate(Color color) {
+        return moveValidator.getCheckDetector().isCheckmate(color, board);
     }
 
     @Override

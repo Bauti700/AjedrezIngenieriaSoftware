@@ -69,8 +69,17 @@ public class ConsoleUI {
         out.append("Turno: ")
                 .append(gameEngine.getCurrentTurn() == Color.WHITE ? "Blancas (MAYUSCULAS)" : "Negras (minusculas)")
                 .append('\n');
-        if (gameEngine.isCheck(Color.WHITE)) out.append("JAQUE! El rey blanco esta atacado.\n");
-        if (gameEngine.isCheck(Color.BLACK)) out.append("JAQUE! El rey negro esta atacado.\n");
+        if (gameEngine.isCheckmate(Color.WHITE)) {
+            out.append("¡JAQUE MATE! Las negras han ganado la partida.\n");
+        } else if (gameEngine.isCheck(Color.WHITE)) {
+            out.append("JAQUE! El rey blanco esta atacado.\n");
+        }
+
+        if (gameEngine.isCheckmate(Color.BLACK)) {
+            out.append("¡JAQUE MATE! Las blancas han ganado la partida.\n");
+        } else if (gameEngine.isCheck(Color.BLACK)) {
+            out.append("JAQUE! El rey negro esta atacado.\n");
+        }
 
         List<Piece> captured = gameEngine.getCapturedPieces();
         if (!captured.isEmpty()) {
@@ -95,6 +104,10 @@ public class ConsoleUI {
         System.out.println("Ingresa jugadas como \"e2 e4\". Escribi \"ayuda\" o \"salir\".");
         Scanner scanner = new Scanner(System.in, StandardCharsets.UTF_8);
         while (true) {
+            if (gameEngine.isGameOver()) {
+                System.out.println("Partida finalizada por jaque mate.");
+                break;
+            }
             System.out.print("\nJugada > ");
             if (!scanner.hasNextLine()) break;
             String input = scanner.nextLine().trim().toLowerCase();
@@ -115,6 +128,10 @@ public class ConsoleUI {
 
             if (gameEngine.makeMove(from, to)) {
                 render();
+                if (gameEngine.isGameOver()) {
+                    System.out.println("Partida finalizada por jaque mate.");
+                    break;
+                }
             } else {
                 System.out.println("Movimiento invalido.");
             }

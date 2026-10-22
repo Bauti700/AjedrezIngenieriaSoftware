@@ -12,6 +12,7 @@ import chess.core.movement.BishopMovementStrategy;
 import chess.core.movement.KingMovementStrategy;
 import chess.core.movement.KnightMovementStrategy;
 import chess.core.movement.PawnMovementStrategy;
+import chess.core.movement.QueenMovementStrategy;
 import chess.core.movement.RookMovementStrategy;
 import chess.core.rules.CheckDetector;
 import org.junit.jupiter.api.BeforeEach;
@@ -116,5 +117,62 @@ class CheckDetectorTest {
         // Assert
         assertSame(rook, board.getSquare(sq("a8")).getPiece());
         assertSame(target, board.getSquare(sq("e8")).getPiece());
+    }
+
+    // ---------------------------------------------------------------- isCheckmate
+
+    @Test
+    void detectsBackRankCheckmate() {
+        place(board, "h1", Color.WHITE, new KingMovementStrategy());
+        place(board, "f2", Color.WHITE, new PawnMovementStrategy());
+        place(board, "g2", Color.WHITE, new PawnMovementStrategy());
+        place(board, "h2", Color.WHITE, new PawnMovementStrategy());
+        place(board, "e1", Color.BLACK, new RookMovementStrategy());
+
+        assertTrue(detector.isInCheck(Color.WHITE, board));
+        assertTrue(detector.isCheckmate(Color.WHITE, board));
+        assertFalse(detector.isCheckmate(Color.BLACK, board));
+    }
+
+    @Test
+    void checkIsNotCheckmateWhenAttackerCanBeCaptured() {
+        place(board, "e1", Color.WHITE, new KingMovementStrategy());
+        place(board, "a8", Color.WHITE, new RookMovementStrategy());
+        place(board, "e8", Color.BLACK, new RookMovementStrategy());
+
+        assertTrue(detector.isInCheck(Color.WHITE, board));
+        assertFalse(detector.isCheckmate(Color.WHITE, board));
+    }
+
+    @Test
+    void checkIsNotCheckmateWhenCheckCanBeBlocked() {
+        place(board, "e1", Color.WHITE, new KingMovementStrategy());
+        place(board, "c2", Color.WHITE, new BishopMovementStrategy());
+        place(board, "e8", Color.BLACK, new RookMovementStrategy());
+
+        assertTrue(detector.isInCheck(Color.WHITE, board));
+        assertFalse(detector.isCheckmate(Color.WHITE, board));
+    }
+
+    @Test
+    void checkIsNotCheckmateWhenKingCanEscape() {
+        place(board, "e1", Color.WHITE, new KingMovementStrategy());
+        place(board, "e8", Color.BLACK, new RookMovementStrategy());
+
+        assertTrue(detector.isInCheck(Color.WHITE, board));
+        assertFalse(detector.isCheckmate(Color.WHITE, board));
+    }
+
+    @Test
+    void stalemateIsNotCheckmate() {
+        // Rey blanco ahogado en a1: rey negro en c2, reina negra en b3
+        // a1 no esta en jaque, pero el rey no tiene ninguna jugada legal disponible.
+        place(board, "a1", Color.WHITE, new KingMovementStrategy());
+        place(board, "c2", Color.BLACK, new KingMovementStrategy());
+        place(board, "b3", Color.BLACK, new QueenMovementStrategy());
+
+        assertFalse(detector.isInCheck(Color.WHITE, board));
+        assertFalse(detector.hasAnyLegalMove(Color.WHITE, board));
+        assertFalse(detector.isCheckmate(Color.WHITE, board));
     }
 }

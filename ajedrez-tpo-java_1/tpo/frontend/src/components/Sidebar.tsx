@@ -1,13 +1,15 @@
 import React from 'react';
 import type { Color, Piece } from '../types/chess';
 import { PieceIcon } from './PieceIcon';
-import { RotateCcw, AlertCircle, ShieldAlert, Award, Layers } from 'lucide-react';
+import { RotateCcw, AlertCircle, ShieldAlert, Award, Layers, Trophy } from 'lucide-react';
 
 interface SidebarProps {
   currentTurn: Color;
   capturedPieces: Piece[];
   isWhiteCheck: boolean;
   isBlackCheck: boolean;
+  isWhiteCheckmate?: boolean;
+  isBlackCheckmate?: boolean;
   moveHistory: string[];
   onReset: () => void;
 }
@@ -17,11 +19,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
   capturedPieces,
   isWhiteCheck,
   isBlackCheck,
+  isWhiteCheckmate,
+  isBlackCheckmate,
   moveHistory,
   onReset
 }) => {
   const whiteCaptured = capturedPieces.filter(p => p.color === 'white');
   const blackCaptured = capturedPieces.filter(p => p.color === 'black');
+  const isGameOver = Boolean(isWhiteCheckmate || isBlackCheckmate);
 
   return (
     <aside className="game-sidebar">
@@ -33,14 +38,29 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         <div className="turn-indicator-box">
-          <div className="turn-label">TURNO ACTUAL</div>
-          <div className={`turn-badge ${currentTurn}`}>
-            <span className={`turn-dot ${currentTurn}`} />
-            <span>{currentTurn === 'white' ? 'Blancas' : 'Negras'}</span>
-          </div>
+          <div className="turn-label">{isGameOver ? 'RESULTADO FINAL' : 'TURNO ACTUAL'}</div>
+          {isGameOver ? (
+            <div className="turn-badge checkmate-badge">
+              <Trophy size={18} className="trophy-badge-icon" />
+              <span>{isWhiteCheckmate ? 'Victoria Negras' : 'Victoria Blancas'}</span>
+            </div>
+          ) : (
+            <div className={`turn-badge ${currentTurn}`}>
+              <span className={`turn-dot ${currentTurn}`} />
+              <span>{currentTurn === 'white' ? 'Blancas' : 'Negras'}</span>
+            </div>
+          )}
         </div>
 
-        {(isWhiteCheck || isBlackCheck) && (
+        {isGameOver ? (
+          <div className="checkmate-alert-banner">
+            <Trophy size={20} className="checkmate-alert-icon" />
+            <div>
+              <strong>¡JAQUE MATE!</strong>{' '}
+              {isWhiteCheckmate ? 'Las Negras ganan la partida.' : 'Las Blancas ganan la partida.'}
+            </div>
+          </div>
+        ) : (isWhiteCheck || isBlackCheck) && (
           <div className="check-alert-banner">
             <ShieldAlert size={20} className="alert-icon" />
             <div>

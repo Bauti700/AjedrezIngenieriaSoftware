@@ -188,4 +188,34 @@ class ChessGameTest {
         assertInstanceOf(PawnMovementStrategy.class, a4.getMovementStrategy());
         assertSame(a4.getMovementStrategy(), b4.getMovementStrategy());
     }
+
+    // ---------------------------------------------------------------- jaque mate
+
+    @Test
+    void detectsCheckmateInFoolsMate() {
+        // Mate del Loco en 2 jugadas: 1. f2-f3 e7-e5 2. g2-g4 d8-h4#
+        play(game, "f2 f3", "e7 e5", "g2 g4", "d8 h4");
+
+        assertTrue(game.isCheck(Color.WHITE));
+        assertTrue(game.isCheckmate(Color.WHITE));
+        assertFalse(game.isCheckmate(Color.BLACK));
+        assertTrue(game.isGameOver());
+
+        // Una vez en jaque mate, no se permiten mas jugadas
+        assertFalse(game.makeMove(sq("a2"), sq("a3")));
+    }
+
+    @Test
+    void detectsCheckmateInScholarsMate() {
+        // Mate Pastor en 4 jugadas: 1. e4 e5 2. Ac4 Cc6 3. Dh5 Cf6 4. Dxf7#
+        play(game, "e2 e4", "e7 e5", "f1 c4", "b8 c6", "d1 h5", "g8 f6", "h5 f7");
+
+        assertTrue(game.isCheck(Color.BLACK));
+        assertTrue(game.isCheckmate(Color.BLACK));
+        assertFalse(game.isCheckmate(Color.WHITE));
+        assertTrue(game.isGameOver());
+
+        // El rey negro no puede comer a la dama porque esta defendida por el alfil
+        assertFalse(game.makeMove(sq("e8"), sq("f7")));
+    }
 }

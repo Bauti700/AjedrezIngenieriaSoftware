@@ -72,7 +72,7 @@ public class ChessHttpServer {
         Integer row = query.get("row");
         Integer column = query.get("column");
         StringBuilder json = new StringBuilder("{\"destinations\":[");
-        if (row != null && column != null) {
+        if (row != null && column != null && !gameEngine.isGameOver()) {
             Board board = gameEngine.getBoard();
             Position from = new Position(row, column);
             if (board.isWithinBounds(from)) {
@@ -134,7 +134,10 @@ public class ChessHttpServer {
         }
         json.append("],");
         json.append("\"check\":{\"white\":").append(gameEngine.isCheck(Color.WHITE))
-                .append(",\"black\":").append(gameEngine.isCheck(Color.BLACK)).append('}');
+                .append(",\"black\":").append(gameEngine.isCheck(Color.BLACK)).append("},");
+        json.append("\"checkmate\":{\"white\":").append(gameEngine.isCheckmate(Color.WHITE))
+                .append(",\"black\":").append(gameEngine.isCheckmate(Color.BLACK)).append("},");
+        json.append("\"gameOver\":").append(gameEngine.isGameOver());
         return json.append('}').toString();
     }
 

@@ -65,7 +65,11 @@ export const App: React.FC = () => {
     );
   }
 
-  const { board, currentTurn, capturedPieces, check } = gameState;
+  const { board, currentTurn, capturedPieces, check, checkmate, gameOver } = gameState;
+  const isWhiteCheckmate = Boolean(checkmate?.white);
+  const isBlackCheckmate = Boolean(checkmate?.black);
+  const isGameOver = Boolean(gameOver || isWhiteCheckmate || isBlackCheckmate);
+
   // Notación algebraica calculada según el tamaño real del tablero.
   const notation = (pos: Position) =>
     `${String.fromCharCode(97 + pos.column)}${gameState.height - pos.row}`;
@@ -80,7 +84,7 @@ export const App: React.FC = () => {
   };
 
   const handleSquareClick = async (pos: Position) => {
-    if (busy) return;
+    if (busy || isGameOver) return;
     setInvalidAttempt(false);
     const clickedPiece = board[pos.row][pos.column];
 
@@ -156,6 +160,8 @@ export const App: React.FC = () => {
             possibleMoves={possibleMoves}
             isWhiteInCheck={check.white}
             isBlackInCheck={check.black}
+            isWhiteInCheckmate={isWhiteCheckmate}
+            isBlackInCheckmate={isBlackCheckmate}
             onSquareClick={pos => void handleSquareClick(pos)}
           />
         </section>
@@ -166,6 +172,8 @@ export const App: React.FC = () => {
             capturedPieces={capturedPieces}
             isWhiteCheck={check.white}
             isBlackCheck={check.black}
+            isWhiteCheckmate={isWhiteCheckmate}
+            isBlackCheckmate={isBlackCheckmate}
             moveHistory={moveHistory}
             onReset={() => void handleResetGame()}
           />
