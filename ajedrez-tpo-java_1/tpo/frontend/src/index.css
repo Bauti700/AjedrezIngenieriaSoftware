@@ -545,3 +545,103 @@ body {
   font-size: 0.9rem;
   color: #93c5fd;
 }
+
+/* Selector de promoción del peón */
+.promotion-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: rgba(2, 6, 23, 0.72);
+  backdrop-filter: blur(4px);
+}
+
+.promotion-dialog {
+  width: 100%;
+  max-width: 520px;
+  padding: 1.5rem;
+  text-align: center;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  box-shadow: var(--shadow-card);
+}
+
+.promotion-dialog h2 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 0.35rem;
+}
+
+.promotion-dialog p {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin-bottom: 1.25rem;
+}
+
+.promotion-options {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.promotion-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  width: 96px;
+  padding: 0.75rem 0.5rem;
+  color: var(--text-main);
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.promotion-option:hover:not(:disabled) {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: var(--border-glow);
+  transform: translateY(-2px);
+}
+
+.promotion-option:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* La pieza ya se ve en el tablero: dentro del botón no necesita el cursor de arrastre. */
+.promotion-option .piece-svg {
+  cursor: pointer !important;
+}
+
+.promotion-reset {
+  margin-top: 1.1rem;
+  padding: 0.45rem 0.9rem;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 0.8rem;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.promotion-reset:hover:not(:disabled) {
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.promotion-reset:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

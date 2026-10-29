@@ -7,12 +7,14 @@ import chess.core.model.Board;
 import chess.core.model.Color;
 import chess.core.model.Piece;
 import chess.core.model.Position;
+import chess.core.model.StandardPieceFactory;
 import chess.core.movement.KingMovementStrategy;
 import chess.core.movement.MovementStrategy;
 import chess.core.movement.PawnMovementStrategy;
 import chess.core.movement.RookMovementStrategy;
 import chess.core.rules.CheckDetector;
 import chess.core.rules.MoveValidator;
+import chess.core.rules.StandardPromotionPolicy;
 import chess.core.rules.TurnManager;
 import java.util.ArrayList;
 import java.util.List;
@@ -43,7 +45,12 @@ class ExtensibilityTest {
     }
 
     private static ChessGame gameWith(Board board) {
-        return new ChessGame(board, new TurnManager(), new MoveValidator(new CheckDetector()));
+        return new ChessGame(
+                board,
+                new TurnManager(),
+                new MoveValidator(new CheckDetector()),
+                new StandardPromotionPolicy(),
+                new StandardPieceFactory());
     }
 
     @Test

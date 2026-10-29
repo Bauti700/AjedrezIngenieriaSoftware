@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import type { ChessGameClient, GameState, Position } from './types/chess';
+import type { ChessGameClient, GameState, PieceType, Position } from './types/chess';
 import { HttpChessGameClient } from './services/HttpChessGameClient';
 import { Board } from './components/Board';
 import { Sidebar } from './components/Sidebar';
+import { PromotionDialog } from './components/PromotionDialog';
 import './index.css';
 
 export const App: React.FC = () => {
@@ -65,10 +66,11 @@ export const App: React.FC = () => {
     );
   }
 
-  const { board, currentTurn, capturedPieces, check, checkmate, gameOver } = gameState;
+  const { board, currentTurn, capturedPieces, check, checkmate, gameOver, promotion } = gameState;
   const isWhiteCheckmate = Boolean(checkmate?.white);
   const isBlackCheckmate = Boolean(checkmate?.black);
   const isGameOver = Boolean(gameOver || isWhiteCheckmate || isBlackCheckmate);
+  const isPromotionPending = Boolean(promotion?.required);
 
   // Notación algebraica calculada según el tamaño real del tablero.
   const notation = (pos: Position) =>
@@ -84,7 +86,7 @@ export const App: React.FC = () => {
   };
 
   const handleSquareClick = async (pos: Position) => {
-    if (busy || isGameOver) return;
+    if (busy || isGameOver || isPromotionPending) return;
     setInvalidAttempt(false);
     const clickedPiece = board[pos.row][pos.column];
 
@@ -130,6 +132,30 @@ export const App: React.FC = () => {
     // Caso 2: sin selección previa, seleccionar una pieza del turno actual
     if (clickedPiece && clickedPiece.color === currentTurn) {
       await selectPiece(pos);
+    }
+  };
+
+  const handlePromotion = async (type: PieceType) => {
+    if (busy || !promotion?.required) return;
+    setBusy(true);
+    try {
+      const result = await gameClient.promote(type);
+      setGameState(result.state);
+      if (result.success) {
+        const square =
+          promotion.row !== null && promotion.column !== null
+            ? notation({ row: promotion.row, column: promotion.column })
+            : '';
+        setMoveHistory(prev => [`PROMOCIÓN ${square} ➜ ${type.toUpperCase()}`, ...prev]);
+      } else {
+        setInvalidAttempt(true);
+        setTimeout(() => setInvalidAttempt(false), 1200);
+      }
+    } catch {
+      setConnectionError('Se perdió la conexión con el backend Java.');
+      setGameState(null);
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -179,6 +205,16 @@ export const App: React.FC = () => {
           />
         </section>
       </main>
+
+      {promotion?.required && promotion.color && (
+        <PromotionDialog
+          color={promotion.color}
+          options={promotion.options}
+          disabled={busy}
+          onSelect={type => void handlePromotion(type)}
+          onReset={() => void handleResetGame()}
+        />
+      )}
     </div>
   );
 };

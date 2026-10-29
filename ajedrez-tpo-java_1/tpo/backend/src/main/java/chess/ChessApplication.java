@@ -5,17 +5,13 @@ import chess.adapters.http.ChessHttpServer;
 import chess.core.game.ChessGame;
 import chess.core.model.Board;
 import chess.core.model.Color;
-import chess.core.model.Piece;
+import chess.core.model.PieceFactory;
+import chess.core.model.PieceType;
 import chess.core.model.Position;
-import chess.core.movement.BishopMovementStrategy;
-import chess.core.movement.KingMovementStrategy;
-import chess.core.movement.KnightMovementStrategy;
-import chess.core.movement.MovementStrategy;
-import chess.core.movement.PawnMovementStrategy;
-import chess.core.movement.QueenMovementStrategy;
-import chess.core.movement.RookMovementStrategy;
+import chess.core.model.StandardPieceFactory;
 import chess.core.rules.CheckDetector;
 import chess.core.rules.MoveValidator;
+import chess.core.rules.StandardPromotionPolicy;
 import chess.core.rules.TurnManager;
 import java.io.IOException;
 
@@ -47,30 +43,41 @@ public final class ChessApplication {
     /** Arma una partida estandar lista para jugar, con todas sus dependencias inyectadas. */
     public static ChessGame createStandardGame() {
         Board board = new Board(8, 8);
-        placeStandardPieces(board);
+        PieceFactory pieceFactory = new StandardPieceFactory();
+        placeStandardPieces(board, pieceFactory);
         MoveValidator moveValidator = new MoveValidator(new CheckDetector());
-        return new ChessGame(board, new TurnManager(Color.WHITE), moveValidator);
+        return new ChessGame(
+                board,
+                new TurnManager(Color.WHITE),
+                moveValidator,
+                new StandardPromotionPolicy(),
+                pieceFactory);
     }
 
     /** Coloca la posicion inicial estandar del ajedrez en un tablero de 8x8. */
     public static void placeStandardPieces(Board board) {
+        placeStandardPieces(board, new StandardPieceFactory());
+    }
+
+    /** Variante que recibe la fabrica: la raiz de composicion decide como crear las piezas. */
+    public static void placeStandardPieces(Board board, PieceFactory pieceFactory) {
         if (board.getWidth() != 8 || board.getHeight() != 8) {
             throw new IllegalArgumentException("The standard setup requires an 8x8 board");
         }
-        // Las estrategias no tienen estado: una instancia por tipo se comparte entre piezas.
-        MovementStrategy rook = new RookMovementStrategy();
-        MovementStrategy knight = new KnightMovementStrategy();
-        MovementStrategy bishop = new BishopMovementStrategy();
-        MovementStrategy queen = new QueenMovementStrategy();
-        MovementStrategy king = new KingMovementStrategy();
-        MovementStrategy pawn = new PawnMovementStrategy();
-        MovementStrategy[] backRank = {rook, knight, bishop, queen, king, bishop, knight, rook};
+        PieceType[] backRank = {
+            PieceType.ROOK, PieceType.KNIGHT, PieceType.BISHOP, PieceType.QUEEN,
+            PieceType.KING, PieceType.BISHOP, PieceType.KNIGHT, PieceType.ROOK
+        };
 
         for (int column = 0; column < 8; column++) {
-            board.getSquare(new Position(0, column)).setPiece(new Piece(Color.BLACK, backRank[column]));
-            board.getSquare(new Position(1, column)).setPiece(new Piece(Color.BLACK, pawn));
-            board.getSquare(new Position(6, column)).setPiece(new Piece(Color.WHITE, pawn));
-            board.getSquare(new Position(7, column)).setPiece(new Piece(Color.WHITE, backRank[column]));
+            board.getSquare(new Position(0, column))
+                    .setPiece(pieceFactory.create(Color.BLACK, backRank[column]));
+            board.getSquare(new Position(1, column))
+                    .setPiece(pieceFactory.create(Color.BLACK, PieceType.PAWN));
+            board.getSquare(new Position(6, column))
+                    .setPiece(pieceFactory.create(Color.WHITE, PieceType.PAWN));
+            board.getSquare(new Position(7, column))
+                    .setPiece(pieceFactory.create(Color.WHITE, backRank[column]));
         }
     }
 }

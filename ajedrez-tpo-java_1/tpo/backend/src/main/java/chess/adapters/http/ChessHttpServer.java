@@ -1,9 +1,11 @@
 package chess.adapters.http;
 
 import chess.core.game.ChessGameAPI;
+import chess.core.game.PendingPromotion;
 import chess.core.model.Board;
 import chess.core.model.Color;
 import chess.core.model.Piece;
+import chess.core.model.PieceType;
 import chess.core.model.Position;
 import chess.core.movement.BishopMovementStrategy;
 import chess.core.movement.KingMovementStrategy;
@@ -19,6 +21,7 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
@@ -33,6 +36,7 @@ import java.util.regex.Pattern;
  *   GET  /api/state                      -> estado completo de la partida
  *   GET  /api/moves?row=R&column=C       -> destinos posibles de la pieza (para resaltar en la UI)
  *   POST /api/move  {fromRow,fromColumn,toRow,toColumn} -> {success, state}
+ *   POST /api/promote {type}             -> resuelve una promocion pendiente
  *   POST /api/reset                      -> nueva partida
  */
 public class ChessHttpServer {
@@ -53,6 +57,7 @@ public class ChessHttpServer {
         server.createContext("/api/state", exchange -> handle(exchange, "GET", this::stateEndpoint));
         server.createContext("/api/moves", exchange -> handle(exchange, "GET", this::movesEndpoint));
         server.createContext("/api/move", exchange -> handle(exchange, "POST", this::moveEndpoint));
+        server.createContext("/api/promote", exchange -> handle(exchange, "POST", this::promoteEndpoint));
         server.createContext("/api/reset", exchange -> handle(exchange, "POST", this::resetEndpoint));
         server.start();
     }
@@ -72,7 +77,9 @@ public class ChessHttpServer {
         Integer row = query.get("row");
         Integer column = query.get("column");
         StringBuilder json = new StringBuilder("{\"destinations\":[");
-        if (row != null && column != null && !gameEngine.isGameOver()) {
+        if (row != null && column != null
+                && !gameEngine.isGameOver()
+                && gameEngine.getPendingPromotion().isEmpty()) {
             Board board = gameEngine.getBoard();
             Position from = new Position(row, column);
             if (board.isWithinBounds(from)) {
@@ -98,6 +105,20 @@ public class ChessHttpServer {
         Integer toColumn = jsonInt(body, "toColumn");
         boolean success = fromRow != null && fromColumn != null && toRow != null && toColumn != null
                 && gameEngine.makeMove(new Position(fromRow, fromColumn), new Position(toRow, toColumn));
+        return "{\"success\":" + success + ",\"state\":" + stateJson() + "}";
+    }
+
+    private String promoteEndpoint(HttpExchange exchange) throws IOException {
+        String body = readBody(exchange);
+        String typeName = jsonString(body, "type");
+        boolean success = false;
+        if (typeName != null) {
+            try {
+                success = gameEngine.promote(PieceType.valueOf(typeName.toUpperCase(Locale.ROOT)));
+            } catch (IllegalArgumentException ignored) {
+                // Tipo desconocido: se responde success=false y el estado actual.
+            }
+        }
         return "{\"success\":" + success + ",\"state\":" + stateJson() + "}";
     }
 
@@ -137,8 +158,28 @@ public class ChessHttpServer {
                 .append(",\"black\":").append(gameEngine.isCheck(Color.BLACK)).append("},");
         json.append("\"checkmate\":{\"white\":").append(gameEngine.isCheckmate(Color.WHITE))
                 .append(",\"black\":").append(gameEngine.isCheckmate(Color.BLACK)).append("},");
-        json.append("\"gameOver\":").append(gameEngine.isGameOver());
+        json.append("\"gameOver\":").append(gameEngine.isGameOver()).append(',');
+        json.append("\"promotion\":").append(promotionJson());
         return json.append('}').toString();
+    }
+
+    /** Estado de una eventual promocion pendiente (para que la UI muestre el selector). */
+    private String promotionJson() {
+        PendingPromotion pending = gameEngine.getPendingPromotion().orElse(null);
+        StringBuilder json = new StringBuilder("{\"required\":").append(pending != null);
+        if (pending == null) {
+            return json.append(",\"row\":null,\"column\":null,\"color\":null,\"options\":[]}").toString();
+        }
+        json.append(",\"row\":").append(pending.getPosition().getRow());
+        json.append(",\"column\":").append(pending.getPosition().getColumn());
+        json.append(",\"color\":\"").append(colorName(pending.getColor())).append("\",");
+        json.append("\"options\":[");
+        List<PieceType> options = gameEngine.getPromotionOptions();
+        for (int i = 0; i < options.size(); i++) {
+            if (i > 0) json.append(',');
+            json.append('"').append(pieceTypeName(options.get(i))).append('"');
+        }
+        return json.append("]}").toString();
     }
 
     private String pieceJson(Piece piece) {
@@ -163,6 +204,11 @@ public class ChessHttpServer {
         if (strategy instanceof KnightMovementStrategy) return "knight";
         if (strategy instanceof PawnMovementStrategy) return "pawn";
         return "unknown";
+    }
+
+    /** Nombre que entiende el frontend para una opcion de promocion. */
+    private String pieceTypeName(PieceType type) {
+        return type.name().toLowerCase(Locale.ROOT);
     }
 
     // ---------------------------------------------------------------- infraestructura HTTP
@@ -212,6 +258,12 @@ public class ChessHttpServer {
     private Integer jsonInt(String json, String key) {
         Matcher matcher = Pattern.compile("\"" + key + "\"\\s*:\\s*(-?\\d+)").matcher(json);
         return matcher.find() ? Integer.valueOf(matcher.group(1)) : null;
+    }
+
+    /** Lee un string de un JSON plano, p. ej. "type": "queen". */
+    private String jsonString(String json, String key) {
+        Matcher matcher = Pattern.compile("\"" + key + "\"\\s*:\\s*\"([^\"]*)\"").matcher(json);
+        return matcher.find() ? matcher.group(1) : null;
     }
 
     private Map<String, Integer> parseQuery(String query) {

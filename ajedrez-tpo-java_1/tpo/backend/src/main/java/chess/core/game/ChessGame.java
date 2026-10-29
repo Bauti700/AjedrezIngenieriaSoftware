@@ -4,12 +4,16 @@ import chess.core.model.Board;
 import chess.core.model.Color;
 import chess.core.model.Move;
 import chess.core.model.Piece;
+import chess.core.model.PieceFactory;
+import chess.core.model.PieceType;
 import chess.core.model.Position;
 import chess.core.rules.MoveValidator;
+import chess.core.rules.PromotionPolicy;
 import chess.core.rules.TurnManager;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * ChessGame (UML): implementa el puerto ChessGameAPI y coordina al resto.
@@ -20,17 +24,29 @@ public class ChessGame implements ChessGameAPI {
     private final Board board;
     private final TurnManager turnManager;
     private final MoveValidator moveValidator;
+    private final PromotionPolicy promotionPolicy;
+    private final PieceFactory pieceFactory;
     private final List<Piece> capturedPieces;
+    private PendingPromotion pendingPromotion;
 
-    public ChessGame(Board board, TurnManager turnManager, MoveValidator moveValidator) {
+    public ChessGame(Board board,
+                     TurnManager turnManager,
+                     MoveValidator moveValidator,
+                     PromotionPolicy promotionPolicy,
+                     PieceFactory pieceFactory) {
         this.board = Objects.requireNonNull(board);
         this.turnManager = Objects.requireNonNull(turnManager);
         this.moveValidator = Objects.requireNonNull(moveValidator);
+        this.promotionPolicy = Objects.requireNonNull(promotionPolicy);
+        this.pieceFactory = Objects.requireNonNull(pieceFactory);
         this.capturedPieces = new ArrayList<>();
     }
 
     @Override
     public boolean makeMove(Position from, Position to) {
+        // Mientras hay una promocion pendiente, la partida esta "congelada"
+        if (pendingPromotion != null) return false;
+
         if (from == null || to == null) return false;
         if (!board.isWithinBounds(from) || !board.isWithinBounds(to)) return false;
 
@@ -51,8 +67,43 @@ public class ChessGame implements ChessGameAPI {
             capturedPieces.add(move.getCapturedPiece());
         }
         board.movePiece(from, to);
+
+        // El peon ya llego a la ultima fila: la jugada no termina hasta elegir la pieza.
+        if (promotionPolicy.applies(movedPiece, to, board)) {
+            pendingPromotion = new PendingPromotion(movedPiece.getColor(), to);
+            return true;
+        }
+
         turnManager.switchTurn();
         return true;
+    }
+
+    @Override
+    public boolean promote(PieceType type) {
+        if (pendingPromotion == null || !promotionPolicy.isAllowed(type)) return false;
+
+        Position position = pendingPromotion.getPosition();
+        Piece pawn = board.getSquare(position).getPiece();
+        // Defensa: la casilla debe seguir teniendo el peon que origino la promocion.
+        if (pawn == null || !promotionPolicy.applies(pawn, position, board)) {
+            pendingPromotion = null;
+            return false;
+        }
+
+        board.getSquare(position).setPiece(pieceFactory.create(pendingPromotion.getColor(), type));
+        pendingPromotion = null;
+        turnManager.switchTurn();
+        return true;
+    }
+
+    @Override
+    public Optional<PendingPromotion> getPendingPromotion() {
+        return Optional.ofNullable(pendingPromotion);
+    }
+
+    @Override
+    public List<PieceType> getPromotionOptions() {
+        return pendingPromotion == null ? List.of() : promotionPolicy.allowedChoices();
     }
 
     @Override
@@ -60,9 +111,14 @@ public class ChessGame implements ChessGameAPI {
         return moveValidator.getCheckDetector().isInCheck(color, board);
     }
 
+    /**
+     * Mientras hay una promocion pendiente la partida no puede darse por terminada:
+     * recien despues de elegir la pieza se evalua el jaque mate con la pieza nueva.
+     */
     @Override
     public boolean isCheckmate(Color color) {
-        return moveValidator.getCheckDetector().isCheckmate(color, board);
+        return pendingPromotion == null
+                && moveValidator.getCheckDetector().isCheckmate(color, board);
     }
 
     @Override

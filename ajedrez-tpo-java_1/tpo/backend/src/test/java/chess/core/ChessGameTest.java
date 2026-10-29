@@ -10,12 +10,14 @@ import chess.core.model.Board;
 import chess.core.model.Color;
 import chess.core.model.Piece;
 import chess.core.model.Position;
+import chess.core.model.StandardPieceFactory;
 import chess.core.movement.KingMovementStrategy;
 import chess.core.movement.PawnMovementStrategy;
 import chess.core.movement.QueenMovementStrategy;
 import chess.core.movement.RookMovementStrategy;
 import chess.core.rules.CheckDetector;
 import chess.core.rules.MoveValidator;
+import chess.core.rules.StandardPromotionPolicy;
 import chess.core.rules.TurnManager;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -173,7 +175,12 @@ class ChessGameTest {
         board.getSquare(sq("e8")).setPiece(new Piece(Color.BLACK, new KingMovementStrategy()));
         board.getSquare(sq("e1")).setPiece(new Piece(Color.WHITE, new KingMovementStrategy()));
         board.getSquare(sq("d1")).setPiece(new Piece(Color.WHITE, new RookMovementStrategy()));
-        ChessGame custom = new ChessGame(board, new TurnManager(Color.BLACK), new MoveValidator(new CheckDetector()));
+        ChessGame custom = new ChessGame(
+                board,
+                new TurnManager(Color.BLACK),
+                new MoveValidator(new CheckDetector()),
+                new StandardPromotionPolicy(),
+                new StandardPieceFactory());
         // Act & Assert
         assertEquals(Color.BLACK, custom.getCurrentTurn());
         assertFalse(custom.makeMove(sq("e8"), sq("d8"))); // d8 atacada por la torre

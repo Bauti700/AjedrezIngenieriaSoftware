@@ -33,7 +33,7 @@ en jaque: piezas clavadas, rey que camina hacia una casilla atacada, o estar en 
 | Jaque mate | ✅ Hecho (`CheckDetector.isCheckmate`, fin de partida en `ChessGame` y aviso en UIs) |
 | Enroque | ❌ Pendiente |
 | Captura al paso | ❌ Pendiente |
-| Promoción de peón | ❌ Pendiente: un peón que llega a la última fila queda ahí sin poder moverse |
+| Promoción de peón | ✅ Hecho: el núcleo congela la jugada hasta que se elige dama, torre, alfil o caballo |
 | Tablas (ahogado, repetición, 50 movimientos) | ❌ Pendiente |
 | Oponente con IA | ❌ Pendiente |
 | Deshacer / rehacer | ❌ Pendiente (camino natural: patrón Command) |
@@ -43,7 +43,7 @@ en jaque: piezas clavadas, rey que camina hacia una casilla atacada, o estar en 
 | Entregable | Estado |
 | :-- | :-- |
 | Código fuente completo | ✅ Hecho |
-| Tests unitarios del núcleo | ✅ Hecho: 75 tests JUnit 5, sin infraestructura |
+| Tests unitarios del núcleo | ✅ Hecho: 85 tests JUnit 5, sin infraestructura |
 | Diagrama de clases (UML) | ⚠️ Existe la Versión 0 aprobada; hay que decidir si se hace una Versión 1 con las diferencias listadas más abajo |
 | Documento de justificación (qué / por qué / cuándo romperlo) | ❌ Pendiente (este README tiene notas que sirven de base) |
 | Presentación (PPTX) | ❌ Pendiente |
@@ -94,10 +94,12 @@ Vite redirige `/api` al backend (ver `frontend/vite.config.ts`), así que no hac
 ```
 chess/
   core/                    NÚCLEO: solo Java estándar (java.base), sin frameworks
-    model/                 Color, Position, Piece, Square, Board, Move
+    model/                 Color, Position, Piece, Square, Board, Move,
+                           PieceType, PieceFactory, StandardPieceFactory
     movement/              MovementStrategy + 6 estrategias (patrón Strategy)
-    rules/                 TurnManager, CheckDetector, MoveValidator
-    game/                  ChessGameAPI (puerto) y ChessGame
+    rules/                 TurnManager, CheckDetector, MoveValidator,
+                           PromotionPolicy, StandardPromotionPolicy
+    game/                  ChessGameAPI (puerto), ChessGame y PendingPromotion
   adapters/
     console/ConsoleUI      adaptador de consola (está en el diagrama)
     http/ChessHttpServer   adaptador HTTP/JSON para React (NO está en el diagrama v0)
@@ -114,7 +116,13 @@ ni de `ChessApplication`. El núcleo compila con `java.base` únicamente.
 | GET | `/api/state` | estado completo (tablero, turno, capturadas, jaque) |
 | GET | `/api/moves?row=R&column=C` | destinos de la pieza según sus reglas |
 | POST | `/api/move` `{fromRow, fromColumn, toRow, toColumn}` | `{success, state}` |
+| POST | `/api/promote` `{type}` | `{success, state}`; `type` = `queen`, `rook`, `bishop` o `knight` |
 | POST | `/api/reset` | estado de una partida nueva |
+
+Cuando un peón llega a la última fila, `state.promotion.required` queda en `true` (con `row`,
+`column`, `color` y `options`), el turno no avanza y `makeMove` rechaza otras jugadas hasta que
+el adaptador llame a `POST /api/promote`. La consola pide la pieza por entrada estándar y la UI
+React muestra un selector modal.
 
 ## Correspondencia con el Diagrama de Clases (Versión 0)
 
@@ -141,3 +149,7 @@ Para la defensa conviene conocer estos detalles:
 - **Clases fuera del diagrama**: `ChessApplication` (raíz de composición / `main`) y
   `ChessHttpServer` (adaptador para la UI React). Si se entrega la UI React, `ChessHttpServer`
   debería incorporarse al diagrama como un adaptador más, igual que `ConsoleUI`.
+- **Promoción**: se agregaron `PieceType`, `PieceFactory`/`StandardPieceFactory`,
+  `PromotionPolicy`/`StandardPromotionPolicy` y `PendingPromotion`. `ChessGame` recibe la
+  política y la fábrica por constructor y, mientras hay una promoción pendiente, no cambia el
+  turno ni acepta otras jugadas. Falta reflejar estas clases en el UML.

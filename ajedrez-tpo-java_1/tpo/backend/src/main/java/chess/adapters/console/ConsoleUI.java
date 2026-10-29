@@ -4,6 +4,7 @@ import chess.core.game.ChessGameAPI;
 import chess.core.model.Board;
 import chess.core.model.Color;
 import chess.core.model.Piece;
+import chess.core.model.PieceType;
 import chess.core.model.Position;
 import chess.core.movement.BishopMovementStrategy;
 import chess.core.movement.KingMovementStrategy;
@@ -81,6 +82,10 @@ public class ConsoleUI {
             out.append("JAQUE! El rey negro esta atacado.\n");
         }
 
+        if (gameEngine.getPendingPromotion().isPresent()) {
+            out.append("PROMOCION PENDIENTE: elegi Q (dama), R (torre), B (alfil) o N (caballo).\n");
+        }
+
         List<Piece> captured = gameEngine.getCapturedPieces();
         if (!captured.isEmpty()) {
             out.append("Capturadas:");
@@ -128,6 +133,7 @@ public class ConsoleUI {
 
             if (gameEngine.makeMove(from, to)) {
                 render();
+                if (!resolvePromotion(scanner)) break;
                 if (gameEngine.isGameOver()) {
                     System.out.println("Partida finalizada por jaque mate.");
                     break;
@@ -137,5 +143,35 @@ public class ConsoleUI {
             }
         }
         System.out.println("\nPartida finalizada.");
+    }
+
+    /**
+     * Si quedo una promocion pendiente, pide la pieza hasta que la eleccion sea valida.
+     * Devuelve false si se corta la entrada o el jugador decide salir.
+     */
+    private boolean resolvePromotion(Scanner scanner) {
+        if (gameEngine.getPendingPromotion().isEmpty()) return true;
+
+        System.out.println("Promocion: elegi pieza (Q = dama, R = torre, B = alfil, N = caballo).");
+        while (scanner.hasNextLine()) {
+            System.out.print("Pieza > ");
+            String input = scanner.nextLine().trim().toUpperCase();
+            if (input.equals("SALIR") || input.equals("EXIT")) return false;
+
+            PieceType type = switch (input) {
+                case "Q", "QUEEN", "DAMA" -> PieceType.QUEEN;
+                case "R", "ROOK", "TORRE" -> PieceType.ROOK;
+                case "B", "BISHOP", "ALFIL" -> PieceType.BISHOP;
+                case "N", "KNIGHT", "CABALLO" -> PieceType.KNIGHT;
+                default -> null;
+            };
+
+            if (type != null && gameEngine.promote(type)) {
+                render();
+                return true;
+            }
+            System.out.println("Opcion invalida. Elegi Q, R, B o N.");
+        }
+        return false;
     }
 }

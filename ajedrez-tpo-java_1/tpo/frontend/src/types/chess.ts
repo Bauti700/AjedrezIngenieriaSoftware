@@ -15,6 +15,15 @@ export interface Piece {
   type: PieceType;
 }
 
+/** Promoción pendiente: el peón ya llegó a la última fila y falta elegir la pieza. */
+export interface PromotionState {
+  required: boolean;
+  row: number | null;
+  column: number | null;
+  color: Color | null;
+  options: PieceType[];
+}
+
 /** Estado completo de la partida, tal como lo devuelve GET /api/state. */
 export interface GameState {
   width: number;
@@ -25,6 +34,7 @@ export interface GameState {
   check: { white: boolean; black: boolean };
   checkmate?: { white: boolean; black: boolean };
   gameOver?: boolean;
+  promotion?: PromotionState;
 }
 
 export interface MoveResult {
@@ -41,5 +51,6 @@ export interface ChessGameClient {
   getState(): Promise<GameState>;
   getPossibleDestinations(from: Position): Promise<Position[]>;
   makeMove(from: Position, to: Position): Promise<MoveResult>;
+  promote(pieceType: PieceType): Promise<MoveResult>;
   resetGame(): Promise<GameState>;
 }

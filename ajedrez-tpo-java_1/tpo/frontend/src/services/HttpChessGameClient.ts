@@ -1,4 +1,4 @@
-import type { ChessGameClient, GameState, MoveResult, Position } from '../types/chess';
+import type { ChessGameClient, GameState, MoveResult, PieceType, Position } from '../types/chess';
 
 /**
  * Implementación HTTP de ChessGameClient: consume la API JSON del backend Java.
@@ -32,6 +32,14 @@ export class HttpChessGameClient implements ChessGameClient {
         toRow: to.row,
         toColumn: to.column,
       }),
+    });
+  }
+
+  public promote(pieceType: PieceType): Promise<MoveResult> {
+    return this.request<MoveResult>('/promote', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: pieceType }),
     });
   }
 
