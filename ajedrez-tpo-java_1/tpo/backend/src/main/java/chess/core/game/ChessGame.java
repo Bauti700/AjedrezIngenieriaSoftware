@@ -26,19 +26,24 @@ public class ChessGame implements ChessGameAPI {
     private final MoveValidator moveValidator;
     private final PromotionPolicy promotionPolicy;
     private final PieceFactory pieceFactory;
+    private final CommandManager commandManager;
     private final List<Piece> capturedPieces;
     private PendingPromotion pendingPromotion;
+    /** Jugada empezada (promocion pendiente) que todavia no entro al historial. */
+    private MoveCommand pendingCommand;
 
     public ChessGame(Board board,
                      TurnManager turnManager,
                      MoveValidator moveValidator,
                      PromotionPolicy promotionPolicy,
-                     PieceFactory pieceFactory) {
+                     PieceFactory pieceFactory,
+                     CommandManager commandManager) {
         this.board = Objects.requireNonNull(board);
         this.turnManager = Objects.requireNonNull(turnManager);
         this.moveValidator = Objects.requireNonNull(moveValidator);
         this.promotionPolicy = Objects.requireNonNull(promotionPolicy);
         this.pieceFactory = Objects.requireNonNull(pieceFactory);
+        this.commandManager = Objects.requireNonNull(commandManager);
         this.capturedPieces = new ArrayList<>();
     }
 
@@ -63,18 +68,31 @@ public class ChessGame implements ChessGameAPI {
             return false;
         }
 
-        if (move.getCapturedPiece() != null) {
-            capturedPieces.add(move.getCapturedPiece());
-        }
-        board.movePiece(from, to);
+        // La jugada se modela como un comando reversible (patron Command).
+        boolean promotion = promotionPolicy.applies(movedPiece, to, board);
+        MoveCommand command = new MoveCommand(
+                board,
+                turnManager,
+                capturedPieces,
+                movedPiece,
+                from,
+                to,
+                move.getCapturedPiece(),
+                promotion);
 
-        // El peon ya llego a la ultima fila: la jugada no termina hasta elegir la pieza.
-        if (promotionPolicy.applies(movedPiece, to, board)) {
+        // Primera mitad: mover la pieza y registrar la captura (todavia no cambia el turno).
+        command.apply();
+
+        // El peon ya llego a la ultima fila: la jugada no termina hasta elegir la pieza,
+        // asi que el comando TAMPOCO entra al historial todavia.
+        if (promotion) {
+            pendingCommand = command;
             pendingPromotion = new PendingPromotion(movedPiece.getColor(), to);
             return true;
         }
 
-        turnManager.switchTurn();
+        command.complete(null, null);
+        commandManager.push(command);
         return true;
     }
 
@@ -87,13 +105,56 @@ public class ChessGame implements ChessGameAPI {
         // Defensa: la casilla debe seguir teniendo el peon que origino la promocion.
         if (pawn == null || !promotionPolicy.applies(pawn, position, board)) {
             pendingPromotion = null;
+            pendingCommand = null;
             return false;
         }
 
-        board.getSquare(position).setPiece(pieceFactory.create(pendingPromotion.getColor(), type));
+        Piece promoted = pieceFactory.create(pendingPromotion.getColor(), type);
+        MoveCommand command = pendingCommand;
+        if (command != null) {
+            // Segunda mitad: reemplaza el peon, pasa el turno y recien ahora se apila.
+            command.complete(promoted, type);
+            commandManager.push(command);
+        } else {
+            // Camino defensivo: mismo efecto aunque no haya comando asociado.
+            board.getSquare(position).setPiece(promoted);
+            turnManager.switchTurn();
+        }
+
+        pendingCommand = null;
         pendingPromotion = null;
-        turnManager.switchTurn();
         return true;
+    }
+
+    /**
+     * Deshacer/rehacer quedan bloqueados mientras hay una promocion pendiente:
+     * la jugada todavia no esta completa y la partida esta "congelada".
+     */
+    @Override
+    public boolean undo() {
+        if (pendingPromotion != null) return false;
+        return commandManager.undo();
+    }
+
+    @Override
+    public boolean redo() {
+        if (pendingPromotion != null) return false;
+        return commandManager.redo();
+    }
+
+    @Override
+    public boolean canUndo() {
+        return pendingPromotion == null && commandManager.canUndo();
+    }
+
+    @Override
+    public boolean canRedo() {
+        return pendingPromotion == null && commandManager.canRedo();
+    }
+
+    @Override
+    public List<String> getMoveHistory() {
+        return commandManager.history();
     }
 
     @Override

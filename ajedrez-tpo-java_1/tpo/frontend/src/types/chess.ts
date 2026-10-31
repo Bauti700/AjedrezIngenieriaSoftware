@@ -35,6 +35,12 @@ export interface GameState {
   checkmate?: { white: boolean; black: boolean };
   gameOver?: boolean;
   promotion?: PromotionState;
+  /** Hay al menos una jugada completa para deshacer. */
+  canUndo?: boolean;
+  /** Hay al menos una jugada deshecha para rehacer. */
+  canRedo?: boolean;
+  /** Registro de jugadas que mantiene el núcleo (fuente única de verdad). */
+  history?: string[];
 }
 
 export interface MoveResult {
@@ -52,5 +58,7 @@ export interface ChessGameClient {
   getPossibleDestinations(from: Position): Promise<Position[]>;
   makeMove(from: Position, to: Position): Promise<MoveResult>;
   promote(pieceType: PieceType): Promise<MoveResult>;
+  undo(): Promise<MoveResult>;
+  redo(): Promise<MoveResult>;
   resetGame(): Promise<GameState>;
 }

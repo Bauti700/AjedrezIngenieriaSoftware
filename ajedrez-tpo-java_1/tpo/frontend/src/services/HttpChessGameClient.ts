@@ -43,6 +43,14 @@ export class HttpChessGameClient implements ChessGameClient {
     });
   }
 
+  public undo(): Promise<MoveResult> {
+    return this.request<MoveResult>('/undo', { method: 'POST' });
+  }
+
+  public redo(): Promise<MoveResult> {
+    return this.request<MoveResult>('/redo', { method: 'POST' });
+  }
+
   public resetGame(): Promise<GameState> {
     return this.request<GameState>('/reset', { method: 'POST' });
   }

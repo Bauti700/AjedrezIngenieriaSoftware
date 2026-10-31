@@ -3,6 +3,7 @@ package chess;
 import chess.adapters.console.ConsoleUI;
 import chess.adapters.http.ChessHttpServer;
 import chess.core.game.ChessGame;
+import chess.core.game.CommandManager;
 import chess.core.model.Board;
 import chess.core.model.Color;
 import chess.core.model.PieceFactory;
@@ -51,7 +52,8 @@ public final class ChessApplication {
                 new TurnManager(Color.WHITE),
                 moveValidator,
                 new StandardPromotionPolicy(),
-                pieceFactory);
+                pieceFactory,
+                new CommandManager());
     }
 
     /** Coloca la posicion inicial estandar del ajedrez en un tablero de 8x8. */

@@ -118,8 +118,25 @@ public class ConsoleUI {
             String input = scanner.nextLine().trim().toLowerCase();
 
             if (input.equals("salir") || input.equals("exit")) break;
+            if (input.equals("deshacer") || input.equals("undo")) {
+                if (!gameEngine.undo()) {
+                    System.out.println("No hay jugadas para deshacer.");
+                    continue;
+                }
+                render();
+                continue;
+            }
+            if (input.equals("rehacer") || input.equals("redo")) {
+                if (!gameEngine.redo()) {
+                    System.out.println("No hay jugadas para rehacer.");
+                    continue;
+                }
+                render();
+                continue;
+            }
             if (input.equals("ayuda") || input.equals("help")) {
                 System.out.println("Formato: <origen> <destino>, por ejemplo \"e2 e4\" o \"g1f3\".");
+                System.out.println("Tambien podes escribir \"deshacer\", \"rehacer\" o \"salir\".");
                 continue;
             }
 

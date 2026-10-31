@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import chess.ChessApplication;
 import chess.core.game.ChessGame;
 import chess.core.game.ChessGameAPI;
+import chess.core.game.CommandManager;
 import chess.core.model.Board;
 import chess.core.model.Color;
 import chess.core.model.Piece;
@@ -180,7 +181,8 @@ class ChessGameTest {
                 new TurnManager(Color.BLACK),
                 new MoveValidator(new CheckDetector()),
                 new StandardPromotionPolicy(),
-                new StandardPieceFactory());
+                new StandardPieceFactory(),
+                new CommandManager());
         // Act & Assert
         assertEquals(Color.BLACK, custom.getCurrentTurn());
         assertFalse(custom.makeMove(sq("e8"), sq("d8"))); // d8 atacada por la torre

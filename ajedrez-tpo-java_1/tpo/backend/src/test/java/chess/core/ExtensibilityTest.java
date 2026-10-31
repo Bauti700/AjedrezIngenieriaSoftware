@@ -3,6 +3,7 @@ package chess.core;
 import static org.junit.jupiter.api.Assertions.*;
 
 import chess.core.game.ChessGame;
+import chess.core.game.CommandManager;
 import chess.core.model.Board;
 import chess.core.model.Color;
 import chess.core.model.Piece;
@@ -50,7 +51,8 @@ class ExtensibilityTest {
                 new TurnManager(),
                 new MoveValidator(new CheckDetector()),
                 new StandardPromotionPolicy(),
-                new StandardPieceFactory());
+                new StandardPieceFactory(),
+                new CommandManager());
     }
 
     @Test

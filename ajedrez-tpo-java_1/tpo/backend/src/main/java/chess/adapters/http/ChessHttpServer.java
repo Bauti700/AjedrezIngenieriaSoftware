@@ -37,6 +37,8 @@ import java.util.regex.Pattern;
  *   GET  /api/moves?row=R&column=C       -> destinos posibles de la pieza (para resaltar en la UI)
  *   POST /api/move  {fromRow,fromColumn,toRow,toColumn} -> {success, state}
  *   POST /api/promote {type}             -> resuelve una promocion pendiente
+ *   POST /api/undo                       -> deshace la ultima jugada completa
+ *   POST /api/redo                       -> rehace la ultima jugada deshecha
  *   POST /api/reset                      -> nueva partida
  */
 public class ChessHttpServer {
@@ -58,6 +60,8 @@ public class ChessHttpServer {
         server.createContext("/api/moves", exchange -> handle(exchange, "GET", this::movesEndpoint));
         server.createContext("/api/move", exchange -> handle(exchange, "POST", this::moveEndpoint));
         server.createContext("/api/promote", exchange -> handle(exchange, "POST", this::promoteEndpoint));
+        server.createContext("/api/undo", exchange -> handle(exchange, "POST", this::undoEndpoint));
+        server.createContext("/api/redo", exchange -> handle(exchange, "POST", this::redoEndpoint));
         server.createContext("/api/reset", exchange -> handle(exchange, "POST", this::resetEndpoint));
         server.start();
     }
@@ -122,6 +126,16 @@ public class ChessHttpServer {
         return "{\"success\":" + success + ",\"state\":" + stateJson() + "}";
     }
 
+    private String undoEndpoint(HttpExchange exchange) {
+        boolean success = gameEngine.undo();
+        return "{\"success\":" + success + ",\"state\":" + stateJson() + "}";
+    }
+
+    private String redoEndpoint(HttpExchange exchange) {
+        boolean success = gameEngine.redo();
+        return "{\"success\":" + success + ",\"state\":" + stateJson() + "}";
+    }
+
     private String resetEndpoint(HttpExchange exchange) {
         gameEngine = gameFactory.get();
         return stateJson();
@@ -159,7 +173,16 @@ public class ChessHttpServer {
         json.append("\"checkmate\":{\"white\":").append(gameEngine.isCheckmate(Color.WHITE))
                 .append(",\"black\":").append(gameEngine.isCheckmate(Color.BLACK)).append("},");
         json.append("\"gameOver\":").append(gameEngine.isGameOver()).append(',');
-        json.append("\"promotion\":").append(promotionJson());
+        json.append("\"promotion\":").append(promotionJson()).append(',');
+        json.append("\"canUndo\":").append(gameEngine.canUndo()).append(',');
+        json.append("\"canRedo\":").append(gameEngine.canRedo()).append(',');
+        json.append("\"history\":[");
+        List<String> history = gameEngine.getMoveHistory();
+        for (int i = 0; i < history.size(); i++) {
+            if (i > 0) json.append(',');
+            json.append('"').append(escapeJson(history.get(i))).append('"');
+        }
+        json.append(']');
         return json.append('}').toString();
     }
 
@@ -209,6 +232,11 @@ public class ChessHttpServer {
     /** Nombre que entiende el frontend para una opcion de promocion. */
     private String pieceTypeName(PieceType type) {
         return type.name().toLowerCase(Locale.ROOT);
+    }
+
+    /** Escapa comillas y barras invertidas para armar JSON a mano. */
+    private String escapeJson(String text) {
+        return text.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
     // ---------------------------------------------------------------- infraestructura HTTP

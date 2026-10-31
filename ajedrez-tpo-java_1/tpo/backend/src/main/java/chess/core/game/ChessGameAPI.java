@@ -40,6 +40,19 @@ public interface ChessGameAPI {
     /** Resuelve la promocion pendiente con la pieza elegida. Devuelve false si no corresponde. */
     boolean promote(PieceType type);
 
+    /** Deshace la ultima jugada completa. False si no hay nada para deshacer. */
+    boolean undo();
+
+    /** Rehace la ultima jugada deshecha. False si no hay nada para rehacer. */
+    boolean redo();
+
+    boolean canUndo();
+
+    boolean canRedo();
+
+    /** Jugadas ejecutadas, de la mas antigua a la mas reciente (para el registro de la UI). */
+    List<String> getMoveHistory();
+
     /**
      * Necesario para que un adaptador pueda dibujar el tablero.
      * Uso de SOLO LECTURA: los cambios se hacen siempre via makeMove.

@@ -4,6 +4,7 @@ import static chess.core.TestBoards.sq;
 import static org.junit.jupiter.api.Assertions.*;
 
 import chess.core.game.ChessGame;
+import chess.core.game.CommandManager;
 import chess.core.model.Board;
 import chess.core.model.Color;
 import chess.core.model.Piece;
@@ -41,7 +42,8 @@ class PromotionTest {
                 new TurnManager(turn),
                 new MoveValidator(new CheckDetector()),
                 new StandardPromotionPolicy(),
-                new StandardPieceFactory());
+                new StandardPieceFactory(),
+                new CommandManager());
     }
 
     private Piece place(String square, Color color, MovementStrategy strategy) {

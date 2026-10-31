@@ -36,14 +36,14 @@ en jaque: piezas clavadas, rey que camina hacia una casilla atacada, o estar en 
 | Promoción de peón | ✅ Hecho: el núcleo congela la jugada hasta que se elige dama, torre, alfil o caballo |
 | Tablas (ahogado, repetición, 50 movimientos) | ❌ Pendiente |
 | Oponente con IA | ❌ Pendiente |
-| Deshacer / rehacer | ❌ Pendiente (camino natural: patrón Command) |
+| Deshacer / rehacer | ✅ Hecho con patrón Command (`MoveCommand` + `CommandManager`) |
 
 ### Entregables (consigna, punto 6)
 
 | Entregable | Estado |
 | :-- | :-- |
 | Código fuente completo | ✅ Hecho |
-| Tests unitarios del núcleo | ✅ Hecho: 85 tests JUnit 5, sin infraestructura |
+| Tests unitarios del núcleo | ✅ Hecho: 100 tests JUnit 5, sin infraestructura |
 | Diagrama de clases (UML) | ⚠️ Existe la Versión 0 aprobada; hay que decidir si se hace una Versión 1 con las diferencias listadas más abajo |
 | Documento de justificación (qué / por qué / cuándo romperlo) | ❌ Pendiente (este README tiene notas que sirven de base) |
 | Presentación (PPTX) | ❌ Pendiente |
@@ -54,7 +54,8 @@ en jaque: piezas clavadas, rey que camina hacia una casilla atacada, o estar en 
   pieza; no excluyen los que dejarían al rey en jaque. Si se intenta uno de esos, el núcleo lo
   rechaza y aparece el aviso de movimiento inválido.
 - El servidor HTTP maneja una sola partida, compartida por todos los navegadores conectados.
-- El historial de jugadas lo arma el frontend; si se recarga la página, se pierde (la partida no).
+- El historial de jugadas vive en el núcleo (`CommandManager`), así que sobrevive a una recarga
+  de la página y se mantiene sincronizado con deshacer/rehacer. Se pierde al reiniciar el servidor.
 
 ## Requisitos
 
@@ -75,6 +76,7 @@ cd backend
 mvn compile exec:java -Dexec.args="console"
 ```
 Las jugadas se escriben `e2 e4`. Mayúsculas = blancas, minúsculas = negras.
+También acepta `deshacer` / `rehacer` (o `undo` / `redo`).
 
 **Jugar con la interfaz gráfica** (dos terminales):
 ```bash
@@ -99,7 +101,8 @@ chess/
     movement/              MovementStrategy + 6 estrategias (patrón Strategy)
     rules/                 TurnManager, CheckDetector, MoveValidator,
                            PromotionPolicy, StandardPromotionPolicy
-    game/                  ChessGameAPI (puerto), ChessGame y PendingPromotion
+    game/                  ChessGameAPI (puerto), ChessGame, PendingPromotion,
+                           Command, MoveCommand y CommandManager (deshacer/rehacer)
   adapters/
     console/ConsoleUI      adaptador de consola (está en el diagrama)
     http/ChessHttpServer   adaptador HTTP/JSON para React (NO está en el diagrama v0)
@@ -117,12 +120,19 @@ ni de `ChessApplication`. El núcleo compila con `java.base` únicamente.
 | GET | `/api/moves?row=R&column=C` | destinos de la pieza según sus reglas |
 | POST | `/api/move` `{fromRow, fromColumn, toRow, toColumn}` | `{success, state}` |
 | POST | `/api/promote` `{type}` | `{success, state}`; `type` = `queen`, `rook`, `bishop` o `knight` |
+| POST | `/api/undo` | `{success, state}`; deshace la última jugada completa |
+| POST | `/api/redo` | `{success, state}`; rehace la última jugada deshecha |
 | POST | `/api/reset` | estado de una partida nueva |
 
 Cuando un peón llega a la última fila, `state.promotion.required` queda en `true` (con `row`,
 `column`, `color` y `options`), el turno no avanza y `makeMove` rechaza otras jugadas hasta que
 el adaptador llame a `POST /api/promote`. La consola pide la pieza por entrada estándar y la UI
 React muestra un selector modal.
+
+El estado JSON incluye además `canUndo`, `canRedo` e `history` (lista de jugadas ya completas).
+Mientras hay una promoción pendiente, deshacer y rehacer devuelven `success: false`: la jugada
+todavía no está completa y la partida queda congelada. Una jugada nueva descarta la rama de
+rehacer. La promoción entra al historial como **una sola jugada** cuando se elige la pieza.
 
 ## Correspondencia con el Diagrama de Clases (Versión 0)
 
@@ -133,8 +143,9 @@ Para la defensa conviene conocer estos detalles:
   `Move.getFrom()`, que es imprescindible. Se agregaron solo getters de atributos que ya
   están en el diagrama: `Square.getPosition`, `Board.getWidth/getHeight`,
   `Move.getFrom/getTo/getMovedPiece`, `Piece.getMovementStrategy`, `MoveValidator.getCheckDetector`.
-- **`ChessGameAPI.getBoard()`** es el único método nuevo del puerto. Sin él, `ConsoleUI.render()`
-  no tiene forma de saber qué dibujar.
+- **`ChessGameAPI`** sumó `undo`, `redo`, `canUndo`, `canRedo` y `getMoveHistory` además de
+  `getBoard()`. `getBoard()` es imprescindible para que los adaptadores dibujen el tablero; los
+  demás exponen el deshacer/rehacer sin que la UI conozca el núcleo.
 - **`getCapturedPieces`**: en el diagrama la interfaz dice `getCapturePieces` y `ChessGame` dice
   `getCapturedPieces`; en Java tienen que llamarse igual. También se corrigió la ortografía de
   `movePiedce` / `Positiomn`.
@@ -153,3 +164,9 @@ Para la defensa conviene conocer estos detalles:
   `PromotionPolicy`/`StandardPromotionPolicy` y `PendingPromotion`. `ChessGame` recibe la
   política y la fábrica por constructor y, mientras hay una promoción pendiente, no cambia el
   turno ni acepta otras jugadas. Falta reflejar estas clases en el UML.
+- **Deshacer/rehacer (patrón Command)**: se agregaron `Command` (interfaz con `execute`/`undo`),
+  `MoveCommand` (una jugada completa reversible, en dos fases para la promoción) y
+  `CommandManager` (invoker con pilas de deshacer y rehacer). `ChessGame` recibe el
+  `CommandManager` por constructor; la UI consume `POST /api/undo` y `POST /api/redo`. El
+  enroque sigue fuera de alcance, por eso un único `MoveCommand` alcanza para revertir cualquier
+  jugada. Falta reflejar estas clases en el UML.

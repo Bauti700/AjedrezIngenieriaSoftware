@@ -14,7 +14,6 @@ export const App: React.FC = () => {
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [selectedPosition, setSelectedPosition] = useState<Position | null>(null);
   const [possibleMoves, setPossibleMoves] = useState<Position[]>([]);
-  const [moveHistory, setMoveHistory] = useState<string[]>([]);
   const [invalidAttempt, setInvalidAttempt] = useState<boolean>(false);
   const [busy, setBusy] = useState<boolean>(false);
 
@@ -72,9 +71,13 @@ export const App: React.FC = () => {
   const isGameOver = Boolean(gameOver || isWhiteCheckmate || isBlackCheckmate);
   const isPromotionPending = Boolean(promotion?.required);
 
-  // Notación algebraica calculada según el tamaño real del tablero.
-  const notation = (pos: Position) =>
-    `${String.fromCharCode(97 + pos.column)}${gameState.height - pos.row}`;
+  // El historial vive en el núcleo (state.history); la UI solo lo muestra.
+  const moveHistory = gameState.history ?? [];
+
+  const clearSelection = () => {
+    setSelectedPosition(null);
+    setPossibleMoves([]);
+  };
 
   const selectPiece = async (pos: Position) => {
     setSelectedPosition(pos);
@@ -108,14 +111,10 @@ export const App: React.FC = () => {
       // Intentar el movimiento: la validación la hace SIEMPRE el núcleo Java
       setBusy(true);
       try {
-        const movingPiece = board[selectedPosition.row][selectedPosition.column];
         const result = await gameClient.makeMove(selectedPosition, pos);
         setGameState(result.state);
         if (result.success) {
-          const entry = `${movingPiece?.type.toUpperCase()} ${notation(selectedPosition)} ➜ ${notation(pos)}`;
-          setMoveHistory(prev => [entry, ...prev]);
-          setSelectedPosition(null);
-          setPossibleMoves([]);
+          clearSelection();
         } else {
           setInvalidAttempt(true);
           setTimeout(() => setInvalidAttempt(false), 1200);
@@ -141,13 +140,7 @@ export const App: React.FC = () => {
     try {
       const result = await gameClient.promote(type);
       setGameState(result.state);
-      if (result.success) {
-        const square =
-          promotion.row !== null && promotion.column !== null
-            ? notation({ row: promotion.row, column: promotion.column })
-            : '';
-        setMoveHistory(prev => [`PROMOCIÓN ${square} ➜ ${type.toUpperCase()}`, ...prev]);
-      } else {
+      if (!result.success) {
         setInvalidAttempt(true);
         setTimeout(() => setInvalidAttempt(false), 1200);
       }
@@ -164,11 +157,49 @@ export const App: React.FC = () => {
       setGameState(await gameClient.resetGame());
       setSelectedPosition(null);
       setPossibleMoves([]);
-      setMoveHistory([]);
       setInvalidAttempt(false);
     } catch {
       setConnectionError('Se perdió la conexión con el backend Java.');
       setGameState(null);
+    }
+  };
+
+  // Deshacer/rehacer: la jugada la revierte el núcleo (CommandManager); la UI solo refresca.
+  const handleUndo = async () => {
+    if (busy || isPromotionPending) return;
+    clearSelection();
+    setBusy(true);
+    try {
+      const result = await gameClient.undo();
+      setGameState(result.state);
+      if (!result.success) {
+        setInvalidAttempt(true);
+        setTimeout(() => setInvalidAttempt(false), 1200);
+      }
+    } catch {
+      setConnectionError('Se perdió la conexión con el backend Java.');
+      setGameState(null);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleRedo = async () => {
+    if (busy || isPromotionPending) return;
+    clearSelection();
+    setBusy(true);
+    try {
+      const result = await gameClient.redo();
+      setGameState(result.state);
+      if (!result.success) {
+        setInvalidAttempt(true);
+        setTimeout(() => setInvalidAttempt(false), 1200);
+      }
+    } catch {
+      setConnectionError('Se perdió la conexión con el backend Java.');
+      setGameState(null);
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -201,6 +232,10 @@ export const App: React.FC = () => {
             isWhiteCheckmate={isWhiteCheckmate}
             isBlackCheckmate={isBlackCheckmate}
             moveHistory={moveHistory}
+            canUndo={Boolean(gameState.canUndo) && !busy}
+            canRedo={Boolean(gameState.canRedo) && !busy}
+            onUndo={() => void handleUndo()}
+            onRedo={() => void handleRedo()}
             onReset={() => void handleResetGame()}
           />
         </section>

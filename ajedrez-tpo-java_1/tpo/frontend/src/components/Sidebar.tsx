@@ -1,7 +1,7 @@
 import React from 'react';
 import type { Color, Piece } from '../types/chess';
 import { PieceIcon } from './PieceIcon';
-import { RotateCcw, AlertCircle, ShieldAlert, Award, Layers, Trophy } from 'lucide-react';
+import { RotateCcw, AlertCircle, ShieldAlert, Award, Layers, Trophy, Undo2, Redo2 } from 'lucide-react';
 
 interface SidebarProps {
   currentTurn: Color;
@@ -11,6 +11,10 @@ interface SidebarProps {
   isWhiteCheckmate?: boolean;
   isBlackCheckmate?: boolean;
   moveHistory: string[];
+  canUndo: boolean;
+  canRedo: boolean;
+  onUndo: () => void;
+  onRedo: () => void;
   onReset: () => void;
 }
 
@@ -22,6 +26,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isWhiteCheckmate,
   isBlackCheckmate,
   moveHistory,
+  canUndo,
+  canRedo,
+  onUndo,
+  onRedo,
   onReset
 }) => {
   const whiteCaptured = capturedPieces.filter(p => p.color === 'white');
@@ -131,6 +139,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Controles de la partida */}
       <div className="actions-section">
+        <div className="actions-row">
+          <button
+            type="button"
+            className="btn btn-action"
+            onClick={onUndo}
+            disabled={!canUndo}
+            title="Deshacer la última jugada"
+          >
+            <Undo2 size={18} />
+            <span>Deshacer</span>
+          </button>
+          <button
+            type="button"
+            className="btn btn-action"
+            onClick={onRedo}
+            disabled={!canRedo}
+            title="Rehacer la última jugada deshecha"
+          >
+            <Redo2 size={18} />
+            <span>Rehacer</span>
+          </button>
+        </div>
         <button className="btn btn-reset" onClick={onReset}>
           <RotateCcw size={18} />
           <span>Reiniciar Partida</span>
