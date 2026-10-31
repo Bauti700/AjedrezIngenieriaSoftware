@@ -1,7 +1,7 @@
 import React from 'react';
 import type { Color, Piece } from '../types/chess';
 import { PieceIcon } from './PieceIcon';
-import { RotateCcw, AlertCircle, ShieldAlert, Award, Layers, Trophy, Undo2, Redo2 } from 'lucide-react';
+import { RotateCcw, AlertCircle, ShieldAlert, Award, Layers, Trophy, Handshake, Undo2, Redo2 } from 'lucide-react';
 
 interface SidebarProps {
   currentTurn: Color;
@@ -10,6 +10,8 @@ interface SidebarProps {
   isBlackCheck: boolean;
   isWhiteCheckmate?: boolean;
   isBlackCheckmate?: boolean;
+  isStalemate?: boolean;
+  isFiftyMoveDraw?: boolean;
   moveHistory: string[];
   canUndo: boolean;
   canRedo: boolean;
@@ -25,6 +27,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isBlackCheck,
   isWhiteCheckmate,
   isBlackCheckmate,
+  isStalemate,
+  isFiftyMoveDraw,
   moveHistory,
   canUndo,
   canRedo,
@@ -34,7 +38,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const whiteCaptured = capturedPieces.filter(p => p.color === 'white');
   const blackCaptured = capturedPieces.filter(p => p.color === 'black');
-  const isGameOver = Boolean(isWhiteCheckmate || isBlackCheckmate);
+  const isDraw = Boolean(isStalemate || isFiftyMoveDraw);
+  const isGameOver = Boolean(isWhiteCheckmate || isBlackCheckmate || isDraw);
+  const drawReason = isStalemate ? 'Ahogado' : 'Regla de los 50 movimientos';
 
   return (
     <aside className="game-sidebar">
@@ -47,10 +53,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         <div className="turn-indicator-box">
           <div className="turn-label">{isGameOver ? 'RESULTADO FINAL' : 'TURNO ACTUAL'}</div>
-          {isGameOver ? (
+          {isWhiteCheckmate || isBlackCheckmate ? (
             <div className="turn-badge checkmate-badge">
               <Trophy size={18} className="trophy-badge-icon" />
               <span>{isWhiteCheckmate ? 'Victoria Negras' : 'Victoria Blancas'}</span>
+            </div>
+          ) : isDraw ? (
+            <div className="turn-badge draw-badge">
+              <Handshake size={18} />
+              <span>EMPATE</span>
             </div>
           ) : (
             <div className={`turn-badge ${currentTurn}`}>
@@ -60,13 +71,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
           )}
         </div>
 
-        {isGameOver ? (
+        {isWhiteCheckmate || isBlackCheckmate ? (
           <div className="checkmate-alert-banner">
             <Trophy size={20} className="checkmate-alert-icon" />
             <div>
               <strong>¡JAQUE MATE!</strong>{' '}
               {isWhiteCheckmate ? 'Las Negras ganan la partida.' : 'Las Blancas ganan la partida.'}
             </div>
+          </div>
+        ) : isDraw ? (
+          <div className="draw-alert-banner">
+            <Handshake size={20} />
+            <div><strong>¡TABLAS!</strong> {drawReason}.</div>
           </div>
         ) : (isWhiteCheck || isBlackCheck) && (
           <div className="check-alert-banner">

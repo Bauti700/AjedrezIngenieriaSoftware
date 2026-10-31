@@ -34,7 +34,7 @@ en jaque: piezas clavadas, rey que camina hacia una casilla atacada, o estar en 
 | Enroque | ❌ Pendiente |
 | Captura al paso | ❌ Pendiente |
 | Promoción de peón | ✅ Hecho: el núcleo congela la jugada hasta que se elige dama, torre, alfil o caballo |
-| Tablas (ahogado, repetición, 50 movimientos) | ❌ Pendiente |
+| Tablas (ahogado y 50 movimientos) | ✅ Hecho (`CheckDetector`, `HalfmoveClock` y estado en ambos adaptadores) |
 | Oponente con IA | ❌ Pendiente |
 | Deshacer / rehacer | ✅ Hecho con patrón Command (`MoveCommand` + `CommandManager`) |
 
@@ -102,7 +102,8 @@ chess/
     rules/                 TurnManager, CheckDetector, MoveValidator,
                            PromotionPolicy, StandardPromotionPolicy
     game/                  ChessGameAPI (puerto), ChessGame, PendingPromotion,
-                           Command, MoveCommand y CommandManager (deshacer/rehacer)
+                           Command, MoveCommand y CommandManager (deshacer/rehacer),
+                           HalfmoveClock (regla de los 50 movimientos)
   adapters/
     console/ConsoleUI      adaptador de consola (está en el diagrama)
     http/ChessHttpServer   adaptador HTTP/JSON para React (NO está en el diagrama v0)

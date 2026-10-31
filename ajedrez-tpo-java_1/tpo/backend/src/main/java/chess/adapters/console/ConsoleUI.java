@@ -82,6 +82,12 @@ public class ConsoleUI {
             out.append("JAQUE! El rey negro esta atacado.\n");
         }
 
+        if (gameEngine.isStalemate(gameEngine.getCurrentTurn())) {
+            out.append("TABLAS POR AHOGADO.\n");
+        } else if (gameEngine.isFiftyMoveRuleDraw()) {
+            out.append("TABLAS POR REGLA DE LOS 50 MOVIMIENTOS.\n");
+        }
+
         if (gameEngine.getPendingPromotion().isPresent()) {
             out.append("PROMOCION PENDIENTE: elegi Q (dama), R (torre), B (alfil) o N (caballo).\n");
         }
@@ -110,7 +116,7 @@ public class ConsoleUI {
         Scanner scanner = new Scanner(System.in, StandardCharsets.UTF_8);
         while (true) {
             if (gameEngine.isGameOver()) {
-                System.out.println("Partida finalizada por jaque mate.");
+                printGameOverReason();
                 break;
             }
             System.out.print("\nJugada > ");
@@ -152,7 +158,7 @@ public class ConsoleUI {
                 render();
                 if (!resolvePromotion(scanner)) break;
                 if (gameEngine.isGameOver()) {
-                    System.out.println("Partida finalizada por jaque mate.");
+                    printGameOverReason();
                     break;
                 }
             } else {
@@ -160,6 +166,18 @@ public class ConsoleUI {
             }
         }
         System.out.println("\nPartida finalizada.");
+    }
+
+    private void printGameOverReason() {
+        if (gameEngine.isCheckmate(Color.WHITE) || gameEngine.isCheckmate(Color.BLACK)) {
+            System.out.println("Partida finalizada por jaque mate.");
+        } else if (gameEngine.isStalemate(gameEngine.getCurrentTurn())) {
+            System.out.println("Partida finalizada por tablas por ahogado.");
+        } else if (gameEngine.isFiftyMoveRuleDraw()) {
+            System.out.println("Partida finalizada por tablas por regla de los 50 movimientos.");
+        } else {
+            System.out.println("Partida finalizada.");
+        }
     }
 
     /**

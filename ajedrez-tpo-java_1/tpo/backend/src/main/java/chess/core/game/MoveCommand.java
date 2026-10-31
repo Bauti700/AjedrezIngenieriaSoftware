@@ -11,8 +11,9 @@ import java.util.Objects;
 /**
  * MoveCommand (UML): una jugada completa como objeto reversible (patron Command).
  *
- * Una jugada toca solo tres cosas: las casillas from/to, el turno y la lista de capturadas.
- * Por eso su inverso es exacto y no hace falta guardar un snapshot del tablero.
+ * Una jugada toca solo cuatro cosas: las casillas from/to, el turno, la lista de capturadas
+ * y el reloj de los 50 movimientos. Por eso su inverso es exacto y no hace falta guardar
+ * un snapshot del tablero.
  *
  * La jugada puede completarse en dos fases porque la promocion necesita una eleccion del jugador:
  *   apply()               -> mueve la pieza y registra la captura (NO cambia el turno)
@@ -23,17 +24,21 @@ public final class MoveCommand implements Command {
     private final Board board;
     private final TurnManager turnManager;
     private final List<Piece> capturedPieces;
+    private final HalfmoveClock halfmoveClock;
     private final Piece movedPiece;
     private final Position from;
     private final Position to;
     private final Piece capturedPiece;
     private final boolean promotion;
+    private final int previousHalfmoveClock;
+    private final boolean previousHasCompletedMove;
     private Piece promotedPiece;
     private String promotedLabel;
 
     public MoveCommand(Board board,
                        TurnManager turnManager,
                        List<Piece> capturedPieces,
+                       HalfmoveClock halfmoveClock,
                        Piece movedPiece,
                        Position from,
                        Position to,
@@ -42,11 +47,14 @@ public final class MoveCommand implements Command {
         this.board = Objects.requireNonNull(board);
         this.turnManager = Objects.requireNonNull(turnManager);
         this.capturedPieces = Objects.requireNonNull(capturedPieces);
+        this.halfmoveClock = Objects.requireNonNull(halfmoveClock);
         this.movedPiece = Objects.requireNonNull(movedPiece);
         this.from = Objects.requireNonNull(from);
         this.to = Objects.requireNonNull(to);
         this.capturedPiece = capturedPiece;
         this.promotion = promotion;
+        this.previousHalfmoveClock = halfmoveClock.snapshot();
+        this.previousHasCompletedMove = halfmoveClock.snapshotHasCompletedMove();
     }
 
     /** Primera mitad: mueve la pieza y registra la captura. No cambia el turno. */
@@ -71,6 +79,7 @@ public final class MoveCommand implements Command {
             board.getSquare(to).setPiece(promotedPiece);
         }
         turnManager.switchTurn();
+        halfmoveClock.afterMove(movedPiece, capturedPiece);
     }
 
     /** Rehacer: la jugada entera de una vez. Solo se invoca sobre comandos ya completos. */
@@ -90,6 +99,7 @@ public final class MoveCommand implements Command {
         }
         // switchTurn es su propio inverso: cada comando apilado cambio el turno una sola vez.
         turnManager.switchTurn();
+        halfmoveClock.restore(previousHalfmoveClock, previousHasCompletedMove);
     }
 
     @Override

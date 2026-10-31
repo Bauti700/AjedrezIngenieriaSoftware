@@ -27,6 +27,7 @@ public class ChessGame implements ChessGameAPI {
     private final PromotionPolicy promotionPolicy;
     private final PieceFactory pieceFactory;
     private final CommandManager commandManager;
+    private final HalfmoveClock halfmoveClock;
     private final List<Piece> capturedPieces;
     private PendingPromotion pendingPromotion;
     /** Jugada empezada (promocion pendiente) que todavia no entro al historial. */
@@ -37,14 +38,26 @@ public class ChessGame implements ChessGameAPI {
                      MoveValidator moveValidator,
                      PromotionPolicy promotionPolicy,
                      PieceFactory pieceFactory,
-                     CommandManager commandManager) {
+                     CommandManager commandManager,
+                     HalfmoveClock halfmoveClock) {
         this.board = Objects.requireNonNull(board);
         this.turnManager = Objects.requireNonNull(turnManager);
         this.moveValidator = Objects.requireNonNull(moveValidator);
         this.promotionPolicy = Objects.requireNonNull(promotionPolicy);
         this.pieceFactory = Objects.requireNonNull(pieceFactory);
         this.commandManager = Objects.requireNonNull(commandManager);
+        this.halfmoveClock = Objects.requireNonNull(halfmoveClock);
         this.capturedPieces = new ArrayList<>();
+    }
+
+    public ChessGame(Board board,
+                     TurnManager turnManager,
+                     MoveValidator moveValidator,
+                     PromotionPolicy promotionPolicy,
+                     PieceFactory pieceFactory,
+                     CommandManager commandManager) {
+        this(board, turnManager, moveValidator, promotionPolicy, pieceFactory,
+                commandManager, new HalfmoveClock());
     }
 
     @Override
@@ -74,6 +87,7 @@ public class ChessGame implements ChessGameAPI {
                 board,
                 turnManager,
                 capturedPieces,
+                halfmoveClock,
                 movedPiece,
                 from,
                 to,
@@ -180,6 +194,23 @@ public class ChessGame implements ChessGameAPI {
     public boolean isCheckmate(Color color) {
         return pendingPromotion == null
                 && moveValidator.getCheckDetector().isCheckmate(color, board);
+    }
+
+    /** Mientras hay promocion pendiente no se declaran tablas: la jugada todavia no termino. */
+    @Override
+    public boolean isStalemate(Color color) {
+        return pendingPromotion == null
+                && moveValidator.getCheckDetector().isStalemate(color, board);
+    }
+
+    @Override
+    public boolean isFiftyMoveRuleDraw() {
+        return pendingPromotion == null && halfmoveClock.isFiftyMoveRuleDraw();
+    }
+
+    @Override
+    public int getHalfmoveClock() {
+        return halfmoveClock.getHalfmoves();
     }
 
     @Override

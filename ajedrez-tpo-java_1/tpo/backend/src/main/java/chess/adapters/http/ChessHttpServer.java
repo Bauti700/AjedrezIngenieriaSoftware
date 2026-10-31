@@ -172,6 +172,10 @@ public class ChessHttpServer {
                 .append(",\"black\":").append(gameEngine.isCheck(Color.BLACK)).append("},");
         json.append("\"checkmate\":{\"white\":").append(gameEngine.isCheckmate(Color.WHITE))
                 .append(",\"black\":").append(gameEngine.isCheckmate(Color.BLACK)).append("},");
+        json.append("\"draw\":{\"stalemate\":{\"white\":").append(gameEngine.isStalemate(Color.WHITE))
+                .append(",\"black\":").append(gameEngine.isStalemate(Color.BLACK))
+                .append("},\"fiftyMoveRule\":").append(gameEngine.isFiftyMoveRuleDraw()).append("},");
+        json.append("\"halfmoveClock\":").append(gameEngine.getHalfmoveClock()).append(',');
         json.append("\"gameOver\":").append(gameEngine.isGameOver()).append(',');
         json.append("\"promotion\":").append(promotionJson()).append(',');
         json.append("\"canUndo\":").append(gameEngine.canUndo()).append(',');

@@ -20,8 +20,20 @@ public interface ChessGameAPI {
 
     boolean isCheckmate(Color color);
 
+    /** ¿El jugador de color esta ahogado? (sin jaque y sin jugadas legales) */
+    boolean isStalemate(Color color);
+
+    /** Tablas por la regla de los 50 movimientos (100 medias jugadas sin peon ni captura). */
+    boolean isFiftyMoveRuleDraw();
+
+    /** Hay tablas por ahogado o por la regla de los 50 movimientos. */
+    default boolean isDraw() {
+        // Solo puede haber ahogado para el jugador al que le toca mover.
+        return isStalemate(getCurrentTurn()) || isFiftyMoveRuleDraw();
+    }
+
     default boolean isGameOver() {
-        return isCheckmate(Color.WHITE) || isCheckmate(Color.BLACK);
+        return isCheckmate(Color.WHITE) || isCheckmate(Color.BLACK) || isDraw();
     }
 
     Color getCurrentTurn();
@@ -52,6 +64,9 @@ public interface ChessGameAPI {
 
     /** Jugadas ejecutadas, de la mas antigua a la mas reciente (para el registro de la UI). */
     List<String> getMoveHistory();
+
+    /** Medias jugadas contadas por la regla de los 50 movimientos. */
+    int getHalfmoveClock();
 
     /**
      * Necesario para que un adaptador pueda dibujar el tablero.

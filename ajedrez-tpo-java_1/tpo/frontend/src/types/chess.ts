@@ -33,6 +33,11 @@ export interface GameState {
   capturedPieces: Piece[];
   check: { white: boolean; black: boolean };
   checkmate?: { white: boolean; black: boolean };
+  draw?: {
+    stalemate: { white: boolean; black: boolean };
+    fiftyMoveRule: boolean;
+  };
+  halfmoveClock?: number;
   gameOver?: boolean;
   promotion?: PromotionState;
   /** Hay al menos una jugada completa para deshacer. */

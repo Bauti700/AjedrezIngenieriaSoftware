@@ -4,6 +4,7 @@ import chess.adapters.console.ConsoleUI;
 import chess.adapters.http.ChessHttpServer;
 import chess.core.game.ChessGame;
 import chess.core.game.CommandManager;
+import chess.core.game.HalfmoveClock;
 import chess.core.model.Board;
 import chess.core.model.Color;
 import chess.core.model.PieceFactory;
@@ -53,7 +54,8 @@ public final class ChessApplication {
                 moveValidator,
                 new StandardPromotionPolicy(),
                 pieceFactory,
-                new CommandManager());
+                new CommandManager(),
+                new HalfmoveClock());
     }
 
     /** Coloca la posicion inicial estandar del ajedrez en un tablero de 8x8. */

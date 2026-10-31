@@ -100,6 +100,15 @@ public class CheckDetector {
     }
 
     /**
+     * ¿El jugador de color esta ahogado?
+     * Condicion: NO estar en jaque y no tener ningun movimiento legal.
+     * Es tablas automaticas (no hay jaque mate).
+     */
+    public boolean isStalemate(Color color, Board board) {
+        return !isInCheck(color, board) && !hasAnyLegalMove(color, board);
+    }
+
+    /**
      * ¿El jugador de color esta en jaque mate?
      * Condicion: estar en jaque y no tener ningun movimiento legal para escapar.
      */

@@ -65,10 +65,13 @@ export const App: React.FC = () => {
     );
   }
 
-  const { board, currentTurn, capturedPieces, check, checkmate, gameOver, promotion } = gameState;
+  const { board, currentTurn, capturedPieces, check, checkmate, gameOver, promotion, draw } = gameState;
   const isWhiteCheckmate = Boolean(checkmate?.white);
   const isBlackCheckmate = Boolean(checkmate?.black);
-  const isGameOver = Boolean(gameOver || isWhiteCheckmate || isBlackCheckmate);
+  const isStalemate = Boolean(currentTurn === 'white' ? draw?.stalemate.white : draw?.stalemate.black);
+  const isFiftyMoveDraw = Boolean(draw?.fiftyMoveRule);
+  const isDraw = isStalemate || isFiftyMoveDraw;
+  const isGameOver = Boolean(gameOver || isWhiteCheckmate || isBlackCheckmate || isDraw);
   const isPromotionPending = Boolean(promotion?.required);
 
   // El historial vive en el núcleo (state.history); la UI solo lo muestra.
@@ -231,6 +234,8 @@ export const App: React.FC = () => {
             isBlackCheck={check.black}
             isWhiteCheckmate={isWhiteCheckmate}
             isBlackCheckmate={isBlackCheckmate}
+            isStalemate={isStalemate}
+            isFiftyMoveDraw={isFiftyMoveDraw}
             moveHistory={moveHistory}
             canUndo={Boolean(gameState.canUndo) && !busy}
             canRedo={Boolean(gameState.canRedo) && !busy}
